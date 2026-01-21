@@ -1,0 +1,28 @@
+# Rust build artifacts
+/target/
+debug/
+release/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment and local config
+.env
+.env.local
+*.local
+
+# Test output
+output_test/
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+
+# Backup files
+*.bak
+*.backup
