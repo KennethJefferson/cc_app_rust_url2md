@@ -41,6 +41,10 @@ struct Args {
     /// Number of parallel workers (default: 1)
     #[arg(short, long, default_value = "1")]
     workers: usize,
+
+    /// Verbose output
+    #[arg(short, long, default_value = "false")]
+    verbose: bool,
 }
 
 /// Parse bracket-enclosed space-separated paths or single path
@@ -131,12 +135,7 @@ struct WorkItem {
 }
 
 enum WorkResult {
-    Success {
-        #[allow(dead_code)]
-        input: PathBuf,
-        #[allow(dead_code)]
-        output: PathBuf,
-    },
+    Success { input: PathBuf, output: PathBuf },
     Skipped { input: PathBuf, reason: String },
     Failed { input: PathBuf, error: String },
 }
@@ -329,6 +328,11 @@ async fn main() -> Result<()> {
         styles.info.apply_to("Recursive:"),
         if args.recursive { "yes" } else { "no" }
     );
+    println!(
+        "  {} {}",
+        styles.info.apply_to("Verbose:"),
+        if args.verbose { "yes" } else { "no" }
+    );
     if let Some(ref out) = args.output {
         println!(
             "  {} {}",
@@ -509,9 +513,19 @@ async fn main() -> Result<()> {
     }
     println!();
 
-    // Print details for skipped/failed
+    // Print details for skipped/failed (or all if verbose)
     for result in &results {
         match result {
+            WorkResult::Success { input, output } => {
+                if args.verbose {
+                    println!(
+                        "  {} {} -> {}",
+                        styles.success.apply_to("✓"),
+                        input.display(),
+                        output.display()
+                    );
+                }
+            }
             WorkResult::Skipped { input, reason } => {
                 println!(
                     "  {} {} - {}",
@@ -528,7 +542,6 @@ async fn main() -> Result<()> {
                     error
                 );
             }
-            _ => {}
         }
     }
 
