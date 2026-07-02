@@ -17,3 +17,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Progress bars with per-worker status display
 - Colored terminal output
 - Summary statistics (succeeded/skipped/failed counts)
+- Convert `.url` shortcuts to Markdown links (`[filename](url)`), with raw-text fallback when no URL is present
