@@ -198,6 +198,30 @@ fn determine_output_path(input: &PathBuf, output_dir: &Option<PathBuf>) -> PathB
     }
 }
 
+/// Extract the URL from .url (INI) content.
+///
+/// Returns the trimmed value of the FIRST line whose key is `URL`
+/// (case-insensitive), or None if that value is empty or no `URL` line exists.
+/// "First key wins": the scan stops at the first `URL` line, so a leading empty
+/// `URL=` yields None (→ fallback) rather than reaching a later `URL=` line.
+/// Borrows from `content` — no allocation.
+fn extract_url(content: &str) -> Option<&str> {
+    content
+        .lines()
+        .find_map(|line| {
+            let (key, value) = line.split_once('=')?;
+            // Match on the KEY, not on a non-empty value: this is what stops the
+            // scan at the first `URL` line and routes an empty one to the fallback.
+            key.trim().eq_ignore_ascii_case("URL").then(|| value.trim())
+        })
+        .filter(|url| !url.is_empty())
+}
+
+/// Render the Markdown for a converted .url file: `[stem](url)\n`.
+fn to_markdown(stem: &str, url: &str) -> String {
+    format!("[{}]({})\n", stem, url)
+}
+
 // ============================================================================
 // Worker
 // ============================================================================
@@ -550,4 +574,72 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_url, to_markdown};
+
+    #[test]
+    fn extract_url_standard() {
+        assert_eq!(
+            extract_url("[InternetShortcut]\nURL=https://github.com"),
+            Some("https://github.com")
+        );
+    }
+
+    #[test]
+    fn extract_url_preserves_query_string_with_equals() {
+        assert_eq!(
+            extract_url("URL=https://x.com/?a=1&b=2"),
+            Some("https://x.com/?a=1&b=2")
+        );
+    }
+
+    #[test]
+    fn extract_url_is_case_insensitive() {
+        assert_eq!(extract_url("url=https://x.com"), Some("https://x.com"));
+    }
+
+    #[test]
+    fn extract_url_trims_whitespace_around_key_and_value() {
+        assert_eq!(extract_url("  URL  =  https://x.com  "), Some("https://x.com"));
+    }
+
+    #[test]
+    fn extract_url_empty_value_is_none() {
+        assert_eq!(extract_url("URL="), None);
+    }
+
+    #[test]
+    fn extract_url_no_url_line_is_none() {
+        assert_eq!(extract_url("[InternetShortcut]\nIconIndex=0"), None);
+    }
+
+    #[test]
+    fn extract_url_finds_url_not_on_first_line() {
+        assert_eq!(
+            extract_url("[InternetShortcut]\nIconIndex=0\nURL=https://x.com"),
+            Some("https://x.com")
+        );
+    }
+
+    // The regression the Codex review caught: a leading empty `URL=` must NOT
+    // fall through to a later `URL=` line. First URL key wins.
+    #[test]
+    fn extract_url_first_key_wins_even_when_empty() {
+        assert_eq!(extract_url("URL=\nURL=https://real.com"), None);
+    }
+
+    #[test]
+    fn to_markdown_formats_link_with_trailing_newline() {
+        assert_eq!(
+            to_markdown("github", "https://github.com"),
+            "[github](https://github.com)\n"
+        );
+    }
 }
