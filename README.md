@@ -40,6 +40,24 @@ url2md -i "C:\urls" -r -w 4
 url2md -i "[C:\urls D:\bookmarks]" -r -o "C:\output" -w 8
 ```
 
+## Output
+
+Each `.url` file becomes a Markdown link named after the file:
+
+Input `github.url`:
+```
+[InternetShortcut]
+URL=https://github.com
+```
+
+Output `github.md`:
+```
+[github](https://github.com)
+```
+
+If a `.url` file has no `URL=` line, its text is written through unchanged
+(nothing is lost). Empty files are skipped.
+
 ## Requirements
 
 - Windows (for .url shortcut files)
