@@ -301,8 +301,16 @@ async fn process_url_file(item: &WorkItem) -> WorkResult {
         }
     }
 
-    // Write the content to the markdown file
-    match fs::write(&item.output_path, trimmed).await {
+    // Convert: link if a URL is present and we have a usable filename stem,
+    // otherwise fall back to the raw trimmed text (normalized to one newline).
+    let stem = item.input_path.file_stem().unwrap_or_default().to_string_lossy();
+    let body = match extract_url(&content) {
+        Some(url) if !stem.is_empty() => to_markdown(&stem, url),
+        _ => format!("{}\n", trimmed),
+    };
+
+    // Write the markdown file
+    match fs::write(&item.output_path, &body).await {
         Ok(_) => WorkResult::Success {
             input: item.input_path.clone(),
             output: item.output_path.clone(),

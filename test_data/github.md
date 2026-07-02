@@ -1,2 +1,1 @@
-[InternetShortcut]
-URL=https://github.com
+[github](https://github.com)
